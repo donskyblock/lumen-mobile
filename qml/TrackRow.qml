@@ -23,6 +23,7 @@ Item {
 
     readonly property bool current: path !== "" && path === Player.currentPath
     readonly property bool wide: width > 640
+    readonly property bool compact: width < 520          // phone: cover + title/artist + more button
     readonly property bool liked: Playlists.revision >= 0 && Playlists.isLiked(path)
     height: Math.round(60 * Pal.dens)
     activeFocusOnTab: true
@@ -47,6 +48,7 @@ Item {
     Item {
         id: num
         x: 16; width: 36; height: parent.height
+        visible: !row.compact
         Icon {
             anchors.centerIn: parent
             visible: row.current || hover.containsMouse
@@ -65,8 +67,8 @@ Item {
     Cover {
         id: art
         visible: row.showCover
-        x: 60; anchors.verticalCenter: parent.verticalCenter
-        width: Math.round(44 * Pal.dens); height: width
+        x: row.compact ? 16 : 60; anchors.verticalCenter: parent.verticalCenter
+        width: Math.round((row.compact ? 48 : 44) * Pal.dens); height: width
         key: row.cover
         radiusPct: 20
     }
@@ -75,23 +77,24 @@ Item {
         id: dur
         anchors.right: parent.right; anchors.rightMargin: 56
         anchors.verticalCenter: parent.verticalCenter
-        width: 46; horizontalAlignment: Text.AlignRight
+        width: row.compact ? 0 : 46; visible: !row.compact; horizontalAlignment: Text.AlignRight
         text: U.fmt(row.durationMs); font.pixelSize: Math.round(13 * Pal.fs); color: Pal.onSurfaceVariant
     }
     IconButton {
         id: more
         anchors.right: parent.right; anchors.rightMargin: 12
         anchors.verticalCenter: parent.verticalCenter
-        width: 36; height: 36
+        width: row.compact ? 44 : 36; height: row.compact ? 44 : 36
         icon: "more_vert"; iconSize: 20
-        opacity: hover.containsMouse || row.activeFocus || row.current ? 1 : 0
+        opacity: row.compact || hover.containsMouse || row.activeFocus || row.current ? 1 : 0
         onClicked: { var p = more.mapToItem(row, 0, 0); row.openMenu(p.x, p.y + 36) }
     }
     IconButton {
         id: heart
         anchors.right: dur.left; anchors.rightMargin: 4
         anchors.verticalCenter: parent.verticalCenter
-        width: 36; height: 36
+        width: row.compact ? 0 : 36; height: 36
+        visible: !row.compact
         icon: row.liked ? "favorite" : "favorite_border"; iconSize: 20
         active: row.liked
         opacity: row.liked || hover.containsMouse ? 1 : 0
@@ -117,8 +120,8 @@ Item {
     Column {
         anchors.left: row.showCover ? art.right : num.right
         anchors.leftMargin: 14
-        anchors.right: alb.visible ? alb.left : (qual.visible ? qual.left : heart.left)
-        anchors.rightMargin: 16
+        anchors.right: row.compact ? more.left : (alb.visible ? alb.left : (qual.visible ? qual.left : heart.left))
+        anchors.rightMargin: row.compact ? 4 : 16
         anchors.verticalCenter: parent.verticalCenter
         spacing: 1
         Text {
@@ -142,9 +145,12 @@ Item {
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         cursorShape: Qt.PointingHandCursor
         z: -1
+        property bool held: false
+        onPressed: held = false
+        onPressAndHold: (m) => { held = true; row.openMenu(m.x, m.y) }     // touch: long press = right click
         onClicked: (m) => {
             if (m.button === Qt.RightButton) row.openMenu(m.x, m.y)
-            else if (!row.missing) row.activated()
+            else if (!held && !row.missing) row.activated()
         }
     }
 }

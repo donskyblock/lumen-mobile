@@ -136,7 +136,7 @@ Item {
             spacing: 2
 
             Text {
-                x: 28; width: parent.width - 56; wrapMode: Text.WordWrap
+                x: Ui.mobile ? 16 : 28; width: parent.width - (Ui.mobile ? 32 : 56); wrapMode: Text.WordWrap
                 visible: root.res.fuzzy === true && !root.nothing && (root.songs.length + root.albums.length + root.artists.length) > 0
                 text: "No exact matches, so these are the closest to \u201c" + root.q + "\u201d."
                 font.pixelSize: Math.round(13 * Pal.fs); color: Pal.onSurfaceVariant; height: visible ? implicitHeight + 10 : 0
@@ -162,7 +162,7 @@ Item {
 
             // ---- top result + best songs ----
             Row {
-                x: 28; width: parent.width - 56; spacing: 20
+                x: Ui.mobile ? 16 : 28; width: parent.width - (Ui.mobile ? 32 : 56); spacing: 20
                 visible: root.tab === "all" && root.topItem.kind !== undefined
                 Column {
                     width: Math.min(340, parent.width * 0.4)
@@ -294,7 +294,7 @@ Item {
 
             // ---- online catalog ----
             Text {
-                x: 28; height: 34; verticalAlignment: Text.AlignVCenter
+                x: Ui.mobile ? 16 : 28; height: 34; verticalAlignment: Text.AlignVCenter
                 visible: root.catLoading && !root.anyCat && root.q !== ""
                 text: "Searching the online catalog\u2026"; font.pixelSize: Math.round(14 * Pal.fs); color: Pal.onSurfaceVariant
             }
@@ -313,7 +313,7 @@ Item {
             Column {
                 width: col.width
                 visible: (root.tab === "songs" || (root.tab === "all" && !root.topSongsOnline)) && root.catTracks.length > 0
-                Text { x: 28; height: 52; verticalAlignment: Text.AlignBottom; text: "Songs online"; font.pixelSize: Math.round(22 * Pal.fs); font.weight: Font.Bold; color: Pal.onSurface }
+                Text { x: Ui.mobile ? 16 : 28; height: 52; verticalAlignment: Text.AlignBottom; text: "Songs online"; font.pixelSize: Math.round(22 * Pal.fs); font.weight: Font.Bold; color: Pal.onSurface }
                 Repeater {
                     model: (root.tab === "all" ? root.catTracks.slice(0, 8) : root.catTracks)
                     delegate: TrackRow {
@@ -343,10 +343,10 @@ Item {
                     width: col.width
                     readonly property var r: modelData
                     visible: r.state !== "done" || r.items.length > 0
-                    Text { x: 28; height: 52; verticalAlignment: Text.AlignBottom; text: "From " + (r.name !== "" ? r.name : "extension")
+                    Text { x: Ui.mobile ? 16 : 28; width: parent.width - (Ui.mobile ? 32 : 56); elide: Text.ElideRight; height: 52; verticalAlignment: Text.AlignBottom; text: "From " + (r.name !== "" ? r.name : "extension")
                            font.pixelSize: Math.round(22 * Pal.fs); font.weight: Font.Bold; color: Pal.onSurface }
-                    Text { x: 28; height: 34; verticalAlignment: Text.AlignVCenter; visible: r.state === "loading"; text: "Searching\u2026"; font.pixelSize: Math.round(14 * Pal.fs); color: Pal.onSurfaceVariant }
-                    Text { x: 28; width: col.width - 56; wrapMode: Text.WordWrap; visible: r.state === "error"
+                    Text { x: Ui.mobile ? 16 : 28; height: 34; verticalAlignment: Text.AlignVCenter; visible: r.state === "loading"; text: "Searching\u2026"; font.pixelSize: Math.round(14 * Pal.fs); color: Pal.onSurfaceVariant }
+                    Text { x: Ui.mobile ? 16 : 28; width: col.width - (Ui.mobile ? 32 : 56); wrapMode: Text.WordWrap; visible: r.state === "error"
                            text: "This extension couldn't search: " + r.error; font.pixelSize: Math.round(14 * Pal.fs); color: Pal.error }
                     Repeater {
                         model: r.items

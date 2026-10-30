@@ -14,6 +14,7 @@ Item {
     }
     Text {
         anchors.right: parent.right; anchors.rightMargin: 28
+        visible: root.width >= 560           // a phone has no room for the count beside the filter chips
         anchors.verticalCenter: bar.verticalCenter
         text: Library.songs.count + (Library.songs.count === 1 ? " song" : " songs")
         font.pixelSize: Math.round(13 * Pal.fs); color: Pal.onSurfaceVariant

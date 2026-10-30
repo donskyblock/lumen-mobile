@@ -1,0 +1,9 @@
+{
+  "id": "lrclib",
+  "name": "LRCLIB",
+  "version": "0.1.0",
+  "description": "Synced and plain lyrics from lrclib.net (free, no account).",
+  "native": "lrclib",
+  "capabilities": ["lyrics"],
+  "setup": "Built into Lumen. Nothing to install."
+}

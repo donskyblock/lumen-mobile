@@ -29,8 +29,8 @@ Item {
 
         Column {
             id: col
-            x: 28
-            width: scroller.width - 56
+            x: Ui.mobile ? 16 : 28
+            width: scroller.width - (Ui.mobile ? 32 : 56)
             spacing: 10
 
             AppearanceSection { width: parent.width }

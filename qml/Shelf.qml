@@ -15,10 +15,10 @@ Item {
 
     Column {
         id: head
-        x: 28; width: parent.width - 56
+        x: Ui.mobile ? 16 : 28; width: parent.width - (Ui.mobile ? 32 : 56)
         spacing: 2
         Text { text: root.title; font.pixelSize: Math.round(22 * Pal.fs); font.weight: Font.Bold; color: Pal.onSurface; height: 40; verticalAlignment: Text.AlignBottom }
-        Text { visible: root.subtitle !== ""; text: root.subtitle; font.pixelSize: Math.round(13 * Pal.fs); color: Pal.onSurfaceVariant }
+        Text { visible: root.subtitle !== ""; width: parent.width; wrapMode: Text.WordWrap; text: root.subtitle; font.pixelSize: Math.round(13 * Pal.fs); color: Pal.onSurfaceVariant }
     }
     ListView {
         id: list
@@ -28,7 +28,7 @@ Item {
         anchors.right: parent.right
         height: root.cardWidth + Math.round(58 * Pal.fs) + 8
         orientation: ListView.Horizontal
-        leftMargin: 20; rightMargin: 20
+        leftMargin: Ui.mobile ? 12 : 20; rightMargin: Ui.mobile ? 12 : 20
         spacing: 4
         clip: true
         boundsBehavior: Flickable.StopAtBounds

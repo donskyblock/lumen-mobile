@@ -62,5 +62,15 @@
       "type": "text",
       "hint": "Path to a cookies.txt exported from your browser. Used instead of the browser above when set."
     }
+  ],
+  "native": "ytdlp",
+  "setupNative": "yt-dlp, Python and a JavaScript runtime are built into Lumen and update themselves, so there is nothing to install. Using it may break a site's terms of service; that's your call. Optional sign-in: YouTube sometimes refuses anonymous downloads (\"sign in to confirm you're not a bot\"). Signing in is at your own risk: YouTube can restrict an account that is used with downloaders, so consider a separate account.",
+  "optionsNative": [
+    {
+      "key": "cookiesFile",
+      "label": "...or a cookies.txt file",
+      "type": "text",
+      "hint": "Path to a cookies.txt exported from your browser. Phones can't read another app's browser login, so this is how you sign in."
+    }
   ]
 }

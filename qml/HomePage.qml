@@ -47,12 +47,12 @@ Item {
             width: scroller.width
             spacing: 6
 
-            Text { x: 28; height: 56; verticalAlignment: Text.AlignVCenter; text: root.greeting
-                   font.pixelSize: Math.round(32 * Pal.fs); font.weight: Font.Bold; color: Pal.onSurface }
+            Text { x: Ui.mobile ? 16 : 28; height: 56; verticalAlignment: Text.AlignVCenter; text: root.greeting
+                   font.pixelSize: Math.round((Ui.mobile ? 28 : 32) * Pal.fs); font.weight: Font.Bold; color: Pal.onSurface }
 
             // quick tiles
             Grid {
-                x: 28; width: parent.width - 56
+                x: Ui.mobile ? 16 : 28; width: parent.width - (Ui.mobile ? 32 : 56)
                 visible: root.shown("quick") && root.tiles.length > 0 && !root.fresh
                 columns: width > 820 ? 3 : 2
                 spacing: 10
@@ -60,7 +60,7 @@ Item {
                     model: root.shown("quick") ? root.tiles : []
                     delegate: Item {
                         id: tile
-                        width: (col.width - 56 - (parent.columns - 1) * 10) / parent.columns
+                        width: (col.width - (Ui.mobile ? 32 : 56) - (parent.columns - 1) * 10) / parent.columns
                         height: 64
                         activeFocusOnTab: true
                         Keys.onReturnPressed: tm.clicked(null)
@@ -68,7 +68,7 @@ Item {
                                     border.width: tile.activeFocus ? 2 : 0; border.color: Pal.primary }
                         Mosaic { id: tc; width: 64; height: 64
                                  covers: modelData.kind === "album" ? [modelData.cover] : (modelData.covers || []); radiusPct: 18 }
-                        Text { anchors.left: tc.right; anchors.leftMargin: 14; anchors.right: parent.right; anchors.rightMargin: 60
+                        Text { anchors.left: tc.right; anchors.leftMargin: 14; anchors.right: parent.right; anchors.rightMargin: Ui.mobile ? 10 : 60
                                anchors.verticalCenter: parent.verticalCenter; text: modelData.title; elide: Text.ElideRight
                                font.pixelSize: Math.round(14 * Pal.fs); font.weight: Font.DemiBold; color: Pal.onSurface }
                         Rectangle {
@@ -91,13 +91,13 @@ Item {
             }
 
             Text {
-                x: 28; width: parent.width - 56; wrapMode: Text.WordWrap
+                x: Ui.mobile ? 16 : 28; width: parent.width - (Ui.mobile ? 32 : 56); wrapMode: Text.WordWrap
                 visible: root.fresh
                 text: "Search for any artist above and press play. Everything you play teaches your radio what you like."
                 font.pixelSize: Math.round(15 * Pal.fs); color: Pal.onSurfaceVariant
             }
             Row {
-                x: 28; spacing: 10
+                x: Ui.mobile ? 16 : 28; spacing: 10
                 Pill { icon: "play"; text: "Play my radio"; enabled: !Taste.busy; onClicked: Taste.startRadio("taste") }
                 Text { anchors.verticalCenter: parent.verticalCenter; visible: Taste.busy !== ""; text: Taste.busy
                        font.pixelSize: Math.round(14 * Pal.fs); color: Pal.onSurfaceVariant }
@@ -184,7 +184,7 @@ Item {
             Column {
                 width: parent.width
                 visible: root.shown("top") && (root.hm.topTracks || []).length > 0
-                Text { x: 28; height: 52; verticalAlignment: Text.AlignBottom; text: "On repeat"; font.pixelSize: Math.round(22 * Pal.fs); font.weight: Font.Bold; color: Pal.onSurface }
+                Text { x: Ui.mobile ? 16 : 28; height: 52; verticalAlignment: Text.AlignBottom; text: "On repeat"; font.pixelSize: Math.round(22 * Pal.fs); font.weight: Font.Bold; color: Pal.onSurface }
                 Repeater {
                     model: root.shown("top") ? (root.hm.topTracks || []).slice(0, 5) : []
                     delegate: TrackRow {
@@ -234,7 +234,7 @@ Item {
             Column {
                 width: parent.width
                 visible: root.fresh && (root.charts.tracks || []).length > 0
-                Text { x: 28; height: 52; verticalAlignment: Text.AlignBottom; text: "Top songs"; font.pixelSize: Math.round(22 * Pal.fs); font.weight: Font.Bold; color: Pal.onSurface }
+                Text { x: Ui.mobile ? 16 : 28; height: 52; verticalAlignment: Text.AlignBottom; text: "Top songs"; font.pixelSize: Math.round(22 * Pal.fs); font.weight: Font.Bold; color: Pal.onSurface }
                 Repeater {
                     model: (root.charts.tracks || []).slice(0, 8)
                     delegate: TrackRow {

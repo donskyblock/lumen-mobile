@@ -23,6 +23,9 @@
 #include <QFont>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
+#include "AndroidMedia.h"
+#include "MediaBrowse.h"
+#include <QWindow>
 #include <QQmlContext>
 #include <QNetworkAccessManager>
 #include <QNetworkDiskCache>
@@ -132,8 +135,46 @@ int main(int argc, char** argv)
     ctx->setContextProperty("SongIndex", &songIndex);
     ctx->setContextProperty("Taste", &taste);
     ctx->setContextProperty("Bus", &bus);
-    qml.load(QUrl("qrc:/qml/Main.qml"));
+    qml.load(QUrl(UiState::isMobile() ? "qrc:/qml/MobileMain.qml" : "qrc:/qml/Main.qml"));
     if (qml.rootObjects().isEmpty()) return 1;
+
+#ifdef Q_OS_ANDROID
+    new AndroidMedia(&player, &library, &playlists, &app);     // media session, notification, Android Auto
+    // Targeting API 35+ makes every window edge-to-edge, so the status bar and gesture bar overlap the UI unless it
+    // keeps clear of them. Qt 6.9+ reports those areas as the window's safe-area margins.
+    {
+        QObject* const shell = qml.rootObjects().first();
+        if (auto* w = qobject_cast<QWindow*>(shell)) {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 9, 0)
+            const auto apply = [shell, w] {
+                const QMargins m = w->safeAreaMargins();
+                shell->setProperty("topInset", double(m.top()));
+                shell->setProperty("bottomInset", double(m.bottom()));
+            };
+            QObject::connect(w, &QWindow::safeAreaMarginsChanged, shell, apply);
+            apply();
+#endif
+        }
+        // The first launch asks for permission to read audio files while the first scan is already running (and
+        // finds nothing). Coming back from that prompt, scan again if the library is still empty.
+        QObject::connect(&app, &QGuiApplication::applicationStateChanged, &library, [&library](Qt::ApplicationState st) {
+            if (st == Qt::ApplicationActive && library.trackCount() == 0 && !library.folders().isEmpty()) library.rescan();
+        });
+    }
+#endif
+
+    // test hooks for the Android media tree: LUMEN_BROWSE=<parent id>  prints it,  LUMEN_BROWSE_PLAY=<id>  plays it
+    if (qEnvironmentVariableIsSet("LUMEN_BROWSE") || qEnvironmentVariableIsSet("LUMEN_BROWSE_PLAY") || qEnvironmentVariableIsSet("LUMEN_SEARCH_TREE")) {
+        auto* mb = new MediaBrowse(&player, &library, &playlists, QDir::temp().filePath("lumen-covers"), &app);
+        QTimer::singleShot(1500, mb, [mb] {
+            const auto dump = [mb](const QString& what, const QVector<MediaRow>& rows) {
+                qInfo().noquote() << "browse" << what << QString::fromUtf8(mb->json(rows, 0, 50));
+            };
+            if (qEnvironmentVariableIsSet("LUMEN_BROWSE")) { const QString p = qEnvironmentVariable("LUMEN_BROWSE"); dump(p, mb->rows(p)); }
+            if (qEnvironmentVariableIsSet("LUMEN_SEARCH_TREE")) { const QString q = qEnvironmentVariable("LUMEN_SEARCH_TREE"); dump("search:" + q, mb->searchRows(q)); }
+            if (qEnvironmentVariableIsSet("LUMEN_BROWSE_PLAY")) mb->play(qEnvironmentVariable("LUMEN_BROWSE_PLAY"));
+        });
+    }
 
     if (qEnvironmentVariableIsSet("LUMEN_MARKET_INSTALL")) {       // test hook
         QObject::connect(&market, &Marketplace::itemsChanged, &market, [&] {
@@ -155,7 +196,9 @@ int main(int argc, char** argv)
             if (qEnvironmentVariableIsSet("LUMEN_PROFILE")) profiles.create("Test", qEnvironmentVariable("LUMEN_PROFILE"));
                         if (qEnvironmentVariableIsSet("LUMEN_ROUTE")) QMetaObject::invokeMethod(root, "goRoute", Q_ARG(QVariant, qEnvironmentVariable("LUMEN_ROUTE")), Q_ARG(QVariant, qEnvironmentVariable("LUMEN_ROUTE_ARG")));
             if (qEnvironmentVariableIsSet("LUMEN_QUERY")) root->setProperty("query", qEnvironmentVariable("LUMEN_QUERY"));
+            if (qEnvironmentVariableIsSet("LUMEN_TAB")) QMetaObject::invokeMethod(root, "selectTab", Q_ARG(QVariant, qEnvironmentVariable("LUMEN_TAB")));
         });
+        QTimer::singleShot(2900, [&] { if (qEnvironmentVariableIntValue("LUMEN_SHEET")) root->setProperty("playerOpen", true); });
         QTimer::singleShot(2200, [&] { if (qEnvironmentVariableIntValue("LUMEN_PLAY")) { const auto info = library.home(); (void)info; player.playPaths(library.albumPaths(qEnvironmentVariable("LUMEN_PLAYALBUM")).isEmpty() ? library.albumPaths(library.albumInfo("").value("key").toString()) : library.albumPaths(qEnvironmentVariable("LUMEN_PLAYALBUM")), 0); if (player.title().isEmpty()) { QStringList all; for (const Track& t : library.songsInView()) all << t.path; player.playPaths(all, 0); } } });
         if (qEnvironmentVariableIsSet("LUMEN_REMOTE")) QTimer::singleShot(2200, [&] {
             const QString spec = qEnvironmentVariable("LUMEN_REMOTE");      // pluginId:path

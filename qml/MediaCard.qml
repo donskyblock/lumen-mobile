@@ -74,6 +74,9 @@ Item {
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         cursorShape: Qt.PointingHandCursor
         z: -1
-        onClicked: (m) => { if (m.button === Qt.RightButton) { var p = card.mapToItem(null, m.x, m.y); card.menuRequested(p.x, p.y) } else card.clicked() }
+        property bool held: false
+        onPressed: held = false
+        onPressAndHold: (m) => { held = true; var p = card.mapToItem(null, m.x, m.y); card.menuRequested(p.x, p.y) }     // touch: long press = right click
+        onClicked: (m) => { if (m.button === Qt.RightButton) { var p = card.mapToItem(null, m.x, m.y); card.menuRequested(p.x, p.y) } else if (!held) card.clicked() }
     }
 }

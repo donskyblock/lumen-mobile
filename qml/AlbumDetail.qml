@@ -3,6 +3,7 @@ import "Util.js" as U
 
 Item {
     id: root
+    readonly property bool narrow: width < 600          // phone layout: cover on top, details below
     property string arg: ""            // album key
     readonly property var info: Library.revision >= 0 ? Library.albumInfo(arg) : ({})
     readonly property var tracks: Library.revision >= 0 ? Library.albumTrackList(arg) : []
@@ -17,19 +18,21 @@ Item {
 
         header: Item {
             width: list.width
-            height: 290
+            height: root.narrow ? hcol.y + hcol.height + 20 : 290
 
             Backdrop { anchors.fill: parent; key: root.info.cover || ""; base: Pal.surfaceLow; strength: 0.7 }
-            IconButton { x: 12; y: 6; icon: "arrow_back"; tint: Pal.onSurface; onClicked: Bus.back() }
-            Cover { id: art; x: 32; y: 58; width: 190; height: 190; key: root.info.cover || ""; radiusPct: 8 }
+            IconButton { x: 12; y: 6; visible: !Ui.mobile; icon: "arrow_back"; tint: Pal.onSurface; onClicked: Bus.back() }
+            Cover { id: art; x: root.narrow ? (parent.width - width) / 2 : 32; y: root.narrow ? 12 : 58; width: root.narrow ? Math.min(240, parent.width - 96) : 190; height: width; key: root.info.cover || ""; radiusPct: 8 }
             Column {
-                anchors.left: art.right; anchors.leftMargin: 28
-                anchors.right: parent.right; anchors.rightMargin: 28
-                anchors.bottom: art.bottom
+                id: hcol
+                anchors.left: root.narrow ? parent.left : art.right; anchors.leftMargin: root.narrow ? 20 : 28
+                anchors.right: parent.right; anchors.rightMargin: root.narrow ? 20 : 28
+                anchors.top: root.narrow ? art.bottom : undefined; anchors.topMargin: 16
+                anchors.bottom: root.narrow ? undefined : art.bottom
                 spacing: 7
                 Text { text: "Album"; font.pixelSize: Math.round(13 * Pal.fs); font.weight: Font.DemiBold; color: Pal.onSurfaceVariant }
                 Text { width: parent.width; text: root.info.title || ""; elide: Text.ElideRight
-                       font.pixelSize: Math.round(40 * Pal.fs); font.weight: Font.Bold; color: Pal.onSurface }
+                       font.pixelSize: Math.round((root.narrow ? 30 : 40) * Pal.fs); font.weight: Font.Bold; color: Pal.onSurface }
                 Row {
                     spacing: 8
                     Item {
@@ -46,12 +49,12 @@ Item {
                     Chip { text: U.plural(root.info.count || 0, "song", "songs") + ", " + U.fmtLong(root.info.durationMs || 0) }
                     Chip { text: root.info.quality || ""; accent: !!root.info.lossless; visible: text !== "" }
                 }
-                Row {
-                    spacing: 10
+                Flow {
+                    width: parent.width; spacing: 10
                     Pill { icon: "play"; text: "Play"; onClicked: Player.playAlbum(root.arg) }
                     Pill { icon: "shuffle"; text: "Shuffle"; filled: false; onClicked: Player.playAlbum(root.arg, 0, true) }
-                    IconButton { anchors.verticalCenter: parent.verticalCenter; icon: "playlist_add"; onClicked: Bus.pickPlaylist(root.paths) }
-                    IconButton { anchors.verticalCenter: parent.verticalCenter; icon: "more_vert"
+                    IconButton { icon: "playlist_add"; onClicked: Bus.pickPlaylist(root.paths) }
+                    IconButton { icon: "more_vert"
                                  onClicked: { var p = mapToItem(null, 0, 40); Bus.menu("album", { key: root.arg, artist: root.info.artist }, p.x, p.y) } }
                 }
             }

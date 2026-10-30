@@ -1,6 +1,7 @@
 #pragma once
 #include <QRegularExpression>
 #include <QString>
+#include <QUrl>
 #include <QStringList>
 #include <QVector>
 #include <algorithm>
@@ -157,4 +158,23 @@ inline UploadMeta parseUploadMeta(const QString& rawTitle, const QString& rawUpl
         if (!tail.match(right).hasMatch() && !left.isEmpty() && !right.isEmpty()) return {left, right};
     }
     return {uploader, title};
+}
+
+// Android's folder picker answers with a Storage Access Framework tree URI such as
+//   content://com.android.externalstorage.documents/tree/primary%3AMusic%2FAlbums
+// For the phone's own storage and SD cards the matching file path can be derived; with the audio permission
+// that path is readable, so the normal scanner works. Anything else comes back unchanged.
+inline QString safTreeToPath(const QString& uri)
+{
+    static const QString prefix = QStringLiteral("content://com.android.externalstorage.documents/tree/");
+    if (!uri.startsWith(prefix)) return uri;
+    QString id = uri.mid(prefix.size());
+    const int doc = id.indexOf(QLatin1String("/document/"));
+    if (doc >= 0) id = id.left(doc);
+    id = QUrl::fromPercentEncoding(id.toUtf8());                   // "primary:Music/Albums" or "1A2B-3C4D:Folder"
+    const QString volume = id.section(QLatin1Char(':'), 0, 0);
+    const QString rel = id.section(QLatin1Char(':'), 1);
+    if (volume.isEmpty()) return uri;
+    const QString base = volume == QLatin1String("primary") ? QStringLiteral("/storage/emulated/0") : QStringLiteral("/storage/") + volume;
+    return rel.isEmpty() ? base : base + QLatin1Char('/') + rel;
 }

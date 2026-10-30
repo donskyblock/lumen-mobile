@@ -283,6 +283,10 @@ QVariantList Library::folders() const
 QString Library::addFolder(const QString& path)
 {
     QString p = path.trimmed();
+    if (p.startsWith("content://")) {
+        p = safTreeToPath(p);
+        if (p.startsWith("content://")) return tr("That location can't be read directly. Pick a folder on the phone's storage or an SD card.");
+    }
     if (p.startsWith("file://")) p = QUrl(p).toLocalFile();
     if (p.startsWith("~/") || p == "~") p = QDir::homePath() + p.mid(1);
     p = QDir::cleanPath(p);

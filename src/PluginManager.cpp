@@ -1,5 +1,6 @@
 #include "PluginManager.h"
 #include "Db.h"
+#include "NativeExtension.h"
 #include <QCoreApplication>
 #include <QDesktopServices>
 #include <QDir>
@@ -18,6 +19,7 @@
 PluginProcess::PluginProcess(const PluginInfo& info, QObject* parent) : QObject(parent), m_info(info)
 {
     m_proc.setProcessChannelMode(QProcess::SeparateChannels);
+    m_native = createNativeExtension(info, this);
     connect(&m_proc, &QProcess::readyReadStandardOutput, this, &PluginProcess::onReadyRead);
     connect(&m_proc, &QProcess::readyReadStandardError, this, [this] {
         const QString e = QString::fromUtf8(m_proc.readAllStandardError()).trimmed();
@@ -84,6 +86,25 @@ void PluginProcess::startIfNeeded()
 
 void PluginProcess::call(const QString& method, const QJsonObject& params, PluginReply cb, int timeoutMs, PluginPartial partial)
 {
+    if (m_native) {
+        // Same bookkeeping as a process-backed call (timeout, partial results, failAll on stop), different transport.
+        const int id = m_nextId++;
+        auto* timer = new QTimer(this);
+        timer->setSingleShot(true);
+        connect(timer, &QTimer::timeout, this, [this, id] { finish(id, false, {}, tr("The extension took too long to answer.")); });
+        timer->start(timeoutMs);
+        m_pending.insert(id, {std::move(cb), std::move(partial), timer});
+        m_status = QStringLiteral("Working\u2026");
+        emit statusChanged();
+        m_native->call(method, params,
+                       [this, id](bool ok, const QJsonValue& v, const QString& err) { finish(id, ok, v, err); },
+                       timeoutMs,
+                       [this, id](const QJsonValue& v) {
+                           const auto it = m_pending.constFind(id);
+                           if (it != m_pending.constEnd() && it->partial) it->partial(v);
+                       });
+        return;
+    }
     if (m_info.exec.isEmpty()) { cb(false, {}, tr("This extension has no \"exec\" command.")); return; }
     startIfNeeded();
     const int id = m_nextId++;
@@ -127,6 +148,7 @@ void PluginProcess::finish(int id, bool ok, const QJsonValue& v, const QString& 
     Pending p = *it;
     m_pending.erase(it);
     p.timer->deleteLater();
+    if (m_native && m_pending.isEmpty()) { m_status = QStringLiteral("Idle"); emit statusChanged(); }
     p.cb(ok, v, err);
 }
 
@@ -140,6 +162,7 @@ void PluginProcess::stop(const QString& reason)
 {
     if (!reason.isEmpty()) m_status = reason;
     failAll(reason.isEmpty() ? tr("Stopped") : reason);
+    if (m_native) m_native->stop();
     m_idle.stop();
     m_mem.stop();
     if (running()) { m_proc.terminate(); if (!m_proc.waitForFinished(800)) m_proc.kill(); }
@@ -191,6 +214,8 @@ void PluginManager::rescan()
     for (const QString& d : qEnvironmentVariable("LUMEN_PLUGIN_DIR").split(QDir::listSeparator(), Qt::SkipEmptyParts)) official << d;
     const QString app = QCoreApplication::applicationDirPath();
     official << app + "/plugins" << app + "/../share/lumen/plugins";
+    // Extensions that are built into the app (no process, no script): their manifests live in the resources.
+    if (nativeExtensionAvailable(QStringLiteral("ytdlp"))) official << QStringLiteral(":/native-plugins");
 
     QStringList discovered;
     auto scanDir = [&](const QString& root, bool isOfficial) {
@@ -207,6 +232,9 @@ void PluginManager::rescan()
             i.description = o.value("description").toString();
             i.setup = o.value("setup").toString();
             for (const QJsonValue& v : o.value("exec").toArray()) i.exec << v.toString();
+            i.native = o.value("native").toString();
+            const bool useNative = !i.native.isEmpty() && nativeExtensionAvailable(i.native);
+            if (useNative && !o.value("setupNative").toString().isEmpty()) i.setup = o.value("setupNative").toString();
             for (const QJsonValue& v : o.value("capabilities").toArray()) i.capabilities << v.toString();
             QString pluginDir = d.filePath(sub);
             if (isOfficial) {
@@ -219,7 +247,7 @@ void PluginManager::rescan()
             i.dir = QFileInfo(pluginDir).canonicalFilePath();
             i.official = isOfficial;
             i.memLimitMB = o.value("memoryLimitMB").toInt(isOfficial ? 20 : 64);
-            for (const QJsonValue& ov : o.value("options").toArray()) {
+            for (const QJsonValue& ov : o.value(useNative && o.contains("optionsNative") ? "optionsNative" : "options").toArray()) {
                 const QJsonObject oo = ov.toObject();
                 const QString key = oo.value("key").toString();
                 if (key.isEmpty()) continue;

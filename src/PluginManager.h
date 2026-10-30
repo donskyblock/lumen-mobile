@@ -15,6 +15,7 @@
 // See docs/PLUGINS.md for the protocol.
 struct PluginInfo {
     QString id, name, version, description, dir, setup;
+    QString native;            // "native": "ytdlp" in plugin.json = an implementation built into the app (used when this build has one)
     QStringList exec, capabilities;
     bool official = false;
     bool enabled = false;
@@ -25,6 +26,8 @@ struct PluginInfo {
 using PluginReply = std::function<void(bool ok, const QJsonValue& result, const QString& error)>;
 using PluginPartial = std::function<void(const QJsonValue& result)>;
 
+class NativeExtension;
+
 class PluginProcess : public QObject {
     Q_OBJECT
 public:
@@ -32,7 +35,7 @@ public:
     ~PluginProcess() override;
     void call(const QString& method, const QJsonObject& params, PluginReply cb, int timeoutMs, PluginPartial partial = {});
     void stop(const QString& reason = {});
-    bool running() const { return m_proc.state() != QProcess::NotRunning; }
+    bool running() const { return m_native ? !m_pending.isEmpty() : m_proc.state() != QProcess::NotRunning; }
     qint64 pssKB() const { return m_pssKB; }
     QString status() const { return m_status; }
 signals:
@@ -46,6 +49,7 @@ private:
     void checkMemory();
 
     PluginInfo m_info;
+    NativeExtension* m_native = nullptr;     // set when this extension runs inside the app instead of as a process
     QProcess m_proc;
     QByteArray m_buf;
     QHash<int, Pending> m_pending;

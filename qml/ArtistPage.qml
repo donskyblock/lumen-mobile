@@ -3,6 +3,7 @@ import "Util.js" as U
 
 Item {
     id: root
+    readonly property bool narrow: width < 600          // phone layout: cover on top, details below
     property string arg: ""            // artist name
     property var page: ({})
     function refresh() { page = Library.artistPage(arg) }
@@ -28,18 +29,20 @@ Item {
 
             Item {
                 width: parent.width
-                height: 290
+                height: root.narrow ? hcol.y + hcol.height + 20 : 290
                 Backdrop { anchors.fill: parent; key: root.page.cover || ""; base: Pal.surfaceLow; strength: 0.7 }
-                IconButton { x: 12; y: 6; icon: "arrow_back"; tint: Pal.onSurface; onClicked: Bus.back() }
-                Cover { id: avatar; x: 32; y: 58; width: 190; height: 190; circle: true; key: root.page.cover || "" }
+                IconButton { x: 12; y: 6; visible: !Ui.mobile; icon: "arrow_back"; tint: Pal.onSurface; onClicked: Bus.back() }
+                Cover { id: avatar; x: root.narrow ? (parent.width - width) / 2 : 32; y: root.narrow ? 12 : 58; width: root.narrow ? Math.min(240, parent.width - 96) : 190; height: width; circle: true; key: root.page.cover || "" }
                 Column {
-                    anchors.left: avatar.right; anchors.leftMargin: 28
-                    anchors.right: parent.right; anchors.rightMargin: 28
-                    anchors.bottom: avatar.bottom
+                    id: hcol
+                    anchors.left: root.narrow ? parent.left : avatar.right; anchors.leftMargin: root.narrow ? 20 : 28
+                    anchors.right: parent.right; anchors.rightMargin: root.narrow ? 20 : 28
+                    anchors.top: root.narrow ? avatar.bottom : undefined; anchors.topMargin: 16
+                    anchors.bottom: root.narrow ? undefined : avatar.bottom
                     spacing: 8
                     Text { text: "Artist"; font.pixelSize: Math.round(13 * Pal.fs); font.weight: Font.DemiBold; color: Pal.onSurfaceVariant }
                     Text { width: parent.width; text: root.page.name || ""; elide: Text.ElideRight
-                           font.pixelSize: Math.round(46 * Pal.fs); font.weight: Font.Bold; color: Pal.onSurface }
+                           font.pixelSize: Math.round((root.narrow ? 30 : 46) * Pal.fs); font.weight: Font.Bold; color: Pal.onSurface }
                     Flow {
                         width: parent.width; spacing: 6
                         Chip { text: U.plural(root.page.albumCount || 0, "album", "albums") }
@@ -48,19 +51,19 @@ Item {
                         Chip { visible: (root.page.losslessPct || 0) > 0; text: (root.page.losslessPct || 0) + "% lossless"; accent: (root.page.losslessPct || 0) >= 90 }
                         Repeater { model: (root.page.genres || []).slice(0, 3); delegate: Chip { text: modelData } }
                     }
-                    Row {
-                        spacing: 10
+                    Flow {
+                        width: parent.width; spacing: 10
                         Pill { icon: "play"; text: "Play"; onClicked: Player.playPaths(Library.artistPaths(root.arg), 0) }
                         Pill { icon: "shuffle"; text: "Shuffle"; filled: false; onClicked: Player.playPathsShuffled(Library.artistPaths(root.arg)) }
                         Pill { icon: "cloud"; text: "Full catalog"; filled: false; onClicked: Catalog.openArtistByName(root.arg) }
-                        IconButton { anchors.verticalCenter: parent.verticalCenter; icon: "more_vert"
+                        IconButton { icon: "more_vert"
                                      onClicked: { var p = mapToItem(null, 0, 40); Bus.menu("artist", { name: root.arg }, p.x, p.y) } }
                     }
                 }
             }
 
             Text {
-                x: 28; height: 52; verticalAlignment: Text.AlignBottom
+                x: Ui.mobile ? 16 : 28; height: 52; verticalAlignment: Text.AlignBottom
                 visible: root.popular.length > 0
                 text: root.page.hasPlays ? "Popular" : "Songs"
                 font.pixelSize: Math.round(22 * Pal.fs); font.weight: Font.Bold; color: Pal.onSurface
@@ -76,7 +79,7 @@ Item {
                 }
             }
             Pill {
-                x: 28
+                x: Ui.mobile ? 16 : 28
                 visible: (root.page.trackCount || 0) > root.popular.length
                 height: 40; filled: false; text: "Play all " + (root.page.trackCount || 0) + " songs"
                 onClicked: Player.playPaths(Library.artistPaths(root.arg), 0)
