@@ -98,7 +98,8 @@ object YtdlpBridge {
             val response = YoutubeDL.getInstance().execute(request, processId)
             reply(true, response.out, "")
         } catch (e: Exception) {
-            reply(false, "", if (timedOut.get()) "yt-dlp timed out" else lastLine(e.message))
+            Log.e(TAG, "yt-dlp execution failed", e)
+            reply(false, "", if (timedOut.get()) "yt-dlp timed out" else e.toString() + ": " + e.message)
         } finally {
             watchdog.interrupt()
         }

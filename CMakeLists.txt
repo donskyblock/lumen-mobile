@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(lumen VERSION 0.1.0 LANGUAGES CXX)
+project(lumen VERSION 0.1.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -8,6 +8,7 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
+set(OPENSSL_ROOT_DIR "$ENV{HOME}/android-openssl/install")
 find_package(Qt6 6.4 REQUIRED COMPONENTS Quick Concurrent Network)
 find_package(Threads REQUIRED)
 if(NOT ANDROID)
@@ -68,6 +69,10 @@ qt_add_executable(lumen
   src/WavyProgress.cpp     src/WavyProgress.h
   src/miniaudio_impl.cpp
 )
+set_property(TARGET lumen APPEND PROPERTY QT_ANDROID_EXTRA_LIBS
+  "$ENV{HOME}/android-openssl/install/arm64-v8a/libcrypto_3.so"
+  "$ENV{HOME}/android-openssl/install/arm64-v8a/libssl_3.so"
+)
 
 file(GLOB QML_FILES RELATIVE ${CMAKE_SOURCE_DIR} CONFIGURE_DEPENDS qml/*.qml qml/*.js)
 qt_add_resources(lumen "qml" PREFIX "/" FILES ${QML_FILES})
@@ -90,7 +95,10 @@ if(ANDROID)
   target_compile_options(lumen PRIVATE -Wall -Wextra -Wno-unused-parameter)
   set_source_files_properties(src/miniaudio_impl.cpp PROPERTIES COMPILE_OPTIONS "-w")
   # Android 15+ devices use 16 KB memory pages: every library in the APK has to be aligned for it
-  target_link_options(lumen PRIVATE -Wl,-z,max-page-size=16384)
+  # Keep symbols from the bundled static archives local to this shared module.
+  # FFmpeg's AArch64 NEON assembly uses direct PC-relative references that
+  # cannot target preemptible symbols in a shared object.
+  target_link_options(lumen PRIVATE -Wl,-z,max-page-size=16384 -Wl,--exclude-libs,ALL)
   set_target_properties(lumen PROPERTIES
     QT_ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_SOURCE_DIR}/android"
     QT_ANDROID_MIN_SDK_VERSION 28

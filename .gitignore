@@ -1,3 +1,9 @@
 build/
+build-android/
 *.png
 .cache/
+android-deps/
+
+lumen-debug.log
+lumen-mobile-signed.apk
+lumen-mobile-signed.apk.idsig

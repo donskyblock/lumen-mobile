@@ -333,7 +333,7 @@ void Taste::buildRadio(const QString& title, const QVector<QPair<Db::CatArtist, 
             w = std::max(0.001, w);
             if (c.familiar) { wFam << w; iFam << i; } else { wNew << w; iNew << i; }
         }
-        QRandomGenerator rng(quint32(QDateTime::currentMSecsSinceEpoch()));
+        QRandomGenerator rng{quint32(QDateTime::currentMSecsSinceEpoch())};
         const int total = 40;
         int nNew = iNew.isEmpty() ? 0 : int(std::round(total * (artistRadio ? std::max(exploration, 0.3) : exploration)));
         int nFam = total - nNew;
@@ -485,7 +485,7 @@ void Taste::autoplay(int ticket, const QStringList& seeds, const QStringList& ex
             x /= 1.0 + skipsW * skipCount.value(c.t.path);
             w << std::max(0.001, x);
         }
-        QRandomGenerator rng(quint32(QDateTime::currentMSecsSinceEpoch()));
+        QRandomGenerator rng{quint32(QDateTime::currentMSecsSinceEpoch())};
         QVector<int> rest = weightedPick(w, want, rng);
         const int gap = std::max(1, int(std::round(diversity * 4)));
         QStringList paths, sources;

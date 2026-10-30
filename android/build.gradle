@@ -28,6 +28,7 @@ dependencies {
     // CHANGE 1: yt-dlp + Python + a JavaScript runtime (QuickJS), updated from inside the app.
     // Verify the newest version on Maven Central when you build (group io.github.junkfood02.youtubedl-android).
     implementation 'io.github.junkfood02.youtubedl-android:library:0.18.1'
+    implementation 'commons-io:commons-io:2.18.0'
 
     // CHANGE 3: media session + Android Auto (Media3 1.10.1)
     implementation 'androidx.media3:media3-session:1.10.1'
